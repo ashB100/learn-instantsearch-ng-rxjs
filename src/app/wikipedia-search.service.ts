@@ -13,7 +13,15 @@ export class WikipediaSearchService {
     search.set('search', term);
     search.set('format', 'json');
 
-    return this.jsonp.get('https://en.wikipedia.org/w/api.php?callback=JSONP_CALLBACK', {search})
-               .map(response => response.json()[1]);
+    /*return this.jsonp.get('https://en.wikipedia.org/w/api.php?callback=JSONP_CALLBACK', {search})
+               .map(response => response.json()[1]); */
+    let obs = this.jsonp.get('http://en.wikipedia.org/w/api.php?callback=JSONP_CALLBACK', {search})
+      .map(response => response.json()[1]);
+      
+    if (term.length === 2) {
+      obs = obs.delay(1000);
+    }
+
+    return obs;
   }
 }
