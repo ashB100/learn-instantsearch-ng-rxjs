@@ -1,28 +1,32 @@
 # InstantSearch
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 1.2.3.
+## Consuming events as Observables
 
-## Development server
+Building a simple instance search we'll face issues such as sending too many requests or getting out of order responses.
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+We solve these problems in a functional reactive way using Observables.
 
-## Code scaffolding
+## JsonpModule from '@angular/http'
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|module`.
+Look this up.
 
-## Build
+## URLSearchParams from '@angular/http'
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory. Use the `-prod` flag for a production build.
+Look this up.
 
-## Running unit tests
+let search = new URLSearchParams();
+search.set('action', 'opensearch');
+search.set('search', term);
+search.set('format', 'json');
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+this.jsonp.get('https://en.wikipedia.org/w/api.php?callback=JSONP_CALLBACK', {search})
+    .map(response => response.json()[1]);
 
-## Running end-to-end tests
 
-Run `ng e2e` to execute the end-to-end tests via [Protractor](http://www.protractortest.org/).
-Before running the tests make sure you are serving the app via `ng serve`.
+Now that we consumed the input event of our text box as an observable, we can apply a whole set of rx operators on top of it to create a more meaningful observable for our specific use case.  
 
-## Further help
+When you look at the network tab in develope tool, you'll see we are currenly making a request to the wikipedia api with every single keystroke. 
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI README](https://github.com/angular/angular-cli/blob/master/README.md).
+What we actually want is to make requests whenever the user stopped typing for a brief moment. That means skip all the notifications up to the point where there hasn't a new notification for at least say, 400 milliseconds.
+
+rx operator debounceTime()
