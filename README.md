@@ -30,3 +30,5 @@ When you look at the network tab in develope tool, you'll see we are currenly ma
 What we actually want is to make requests whenever the user stopped typing for a brief moment. That means skip all the notifications up to the point where there hasn't a new notification for at least say, 400 milliseconds.
 
 rx operator debounceTime()
+
+If we typed Ang then deleted g and typed g again, so we end up with Ang again, we'll still make another network request to get the results for Ang. So to make it more efficient we need to filter out subsequent duplicate notifications.
