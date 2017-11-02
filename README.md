@@ -39,46 +39,46 @@ If we typed Ang then deleted g and typed g again, so we end up with Ang again, w
 Observables are all about composability. We have two subscribe calls which are losely connected with a method call. 
 
 <code>
-@Component({
-  moduleId: module.id,
-  selector: 'app-root',
-  templateUrl: 'app.component.html',
-  styleUrls: ['app.component.css']
-})
-export class AppComponent {
-  items:Array<string>;
-  term$ = new Subject<string>(); 
+@Component({  
+  moduleId: module.id,  
+  selector: 'app-root',  
+  templateUrl: 'app.component.html',  
+  styleUrls: ['app.component.css']  
+})  
+export class AppComponent {  
+  items:Array<string>;  
+  term$ = new Subject<string>();   
   
-  constructor(private service:WikipediaSearchService) {
-    this.term$
-        .debounceTime(400)
-        .distinctUntilChanged()
-        .subscribe(term => this.search(term));
-  }
-
-  search(term: string) {
-    this.service.search(term)
-                .subscribe(results => this.items = results);
-  }
-}
+  constructor(private service:WikipediaSearchService) {  
+    this.term$  
+        .debounceTime(400)  
+        .distinctUntilChanged()  
+        .subscribe(term => this.search(term));  
+  }  
+  
+  search(term: string) {  
+    this.service.search(term)  
+                .subscribe(results => this.items = results);  
+  }  
+}  
 </code>
 
 ## map
 
 We can change the above into:
 <code>
-constructor(private service:WikipediaSearchService) {
-    this.term$
-        .debounceTime(400)
-        .distinctUntilChanged()
-        .map(term => this.service.search(term))
-        .subscribe(obsResults => {
-            obsResults.subscribe(results => this.items = results);
-        })
-}
+constructor(private service:WikipediaSearchService) {  
+    this.term$  
+        .debounceTime(400)  
+        .distinctUntilChanged()  
+        .map(term => this.service.search(term))  
+        .subscribe(obsResults => {  
+            obsResults.subscribe(results => this.items = results);  
+        })  
+}  
 </code>
 
-But we still have two subsciptions. The first subsription gives an observable which we need to subscribe to. We can do this better by using flatMap:
+But we still have two subsciptions. Using map turned our observable into an observable of observable. We can do this better by using flatMap:
 
 <code>
 constructor(private service:WikipediaSearchService) {
@@ -91,10 +91,9 @@ constructor(private service:WikipediaSearchService) {
 </code>
 
 ## flatMap
-flatMap is an alias for mergeMap, so we import:
-import 'rxjs/add/operator/mergeMap';
+flatMap is an alias for mergeMap. We import 'rxjs/add/operator/mergeMap';
 
-flatMap flattens the observables and gives our the end result, so we don't have an observable of observable anymore. 
+flatMap automatically subscribes to the inner observables and flattens them into just one observables of the same type. 
 
 ## Out of order responses
 
@@ -140,3 +139,49 @@ import 'rxjs/add/operator/switchMap';
 </code> 
 
 Now everytime a new request goes out, we unsbuscribe from the previous one. 
+
+
+## Observables are first class objects
+
+wikipedia-search.service.ts
+
+<code>
+@Injectable()  
+export class WikipediaSearchService {  
+  
+  constructor(private jsonp: Jsonp) { }  
+  
+  search(terms: Observable<string>, debounceMs = 400 ) {  
+    return terms  
+        .debounceTime(debounceMs)  
+        .distinctUntilChanged()  
+        .switchMap(term => this.rawsearch(term));  
+  }  
+  
+  rawsearch (term: string) {  
+    let search = new URLSearchParams();  
+    search.set('action', 'opensearch');  
+    search.set('search', term);  
+    search.set('format', 'json');  
+  
+    return this.jsonp.get('http://en.wikipedia.org/w/api.php?callback=JSONP_CALLBACK', {search})  
+      .map(response => response.json()[1]);  
+  }  
+}  
+</code>
+
+app.component.ts
+
+<code>
+export class AppComponent implements OnInit {  
+  items:Array<string>;  
+  term$ = new Subject<string>(); // $ to indicate an Observable  
+    
+  constructor(private service:WikipediaSearchService) {}  
+  
+  ngOnInit() {  
+    this.service.search(this.term$)  
+      .subscribe(results => this.items = results);  
+  }  
+}  
+</code>
